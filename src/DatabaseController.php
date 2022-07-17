@@ -12,16 +12,26 @@ use Illuminate\Config\Repository as ConfigRepository;
 
 class DatabaseController extends Base
 {
+    private ConfigRepository $configRepository;
+
+    /**
+     * @param ConfigRepository $configRepository
+     */
+    public function __construct(ConfigRepository $configRepository)
+    {
+        $this->configRepository = $configRepository;
+    }
+
     /**
      * @param string $method
      * @param array $params
-     * @return mixed
+     * @return array
      */
-    private function runMethod(string $method, array $params): mixed
+    private function runMethod(string $method, array $params): array
     {
-        $connection = DB::connection('databasehttpproxy.connection');
+        $connection = DB::connection($this->configRepository->get('databasehttpproxy.connection'));
 
-        return match ($method) {
+        $result = match ($method) {
             'delete' => call_user_func_array([$connection, 'delete'], $params),
             'insert' => call_user_func_array([$connection, 'insert'], $params),
             'select' => call_user_func_array([$connection, 'select'], $params),
@@ -33,16 +43,17 @@ class DatabaseController extends Base
             'affectingStatement' => call_user_func_array([$connection, 'affectingStatement'], $params),
             default => throw new BadMethodCallException("Method: \"$method\" does not exist."),
         };
+
+        return [$result, $connection->getPdo()->lastInsertId()];
     }
 
     /**
      * @param Request $request
-     * @param ConfigRepository $configRepository
      * @return JsonResponse
      */
-    public function indexAction(Request $request, ConfigRepository $configRepository): JsonResponse
+    public function indexAction(Request $request): JsonResponse
     {
-        $token = $configRepository->get('databasehttpproxy.token');
+        $token = $this->configRepository->get('databasehttpproxy.token');
         if (null !== $token) {
             $givenToken = str_replace('Bearer ', '', $request->header('Authorization'));
             if ($token !== $givenToken) {
@@ -56,22 +67,17 @@ class DatabaseController extends Base
             }
         }
 
-        $array = $request->toArray();
+        $array = json_decode((string)$request->getContent(), true);
 
         $data = null;
         $error = null;
+        $lastInsertId = false;
         try {
-            $data = $this->runMethod($array['method'] ?? '', $array['params'] ?? []);
+            [$data, $lastInsertId] = $this->runMethod($array['method'] ?? '', $array['params'] ?? []);
         } catch (Throwable $e) {
-            $error = [
-                'name' => get_class($e),
-                'message' => $e->getMessage(),
-            ];
+            $error = ['name' => get_class($e), 'message' => $e->getMessage()];
         }
 
-        return new JsonResponse([
-            'data' => $data,
-            'error' => $error,
-        ]);
+        return new JsonResponse(['data' => $data, 'error' => $error, 'lastInsertId' => $lastInsertId]);
     }
 }

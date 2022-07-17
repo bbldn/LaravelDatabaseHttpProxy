@@ -121,6 +121,13 @@ class Connection extends Base
             throw new ConnectionException('Bad response');
         }
 
+        $lastInsertId = $json['lastInsertId'] ?? null;
+        if (true === key_exists('lastInsertId', $json)) {
+            if (true === method_exists($this->pdo, 'setLastInsertId')) {
+                $this->pdo->setLastInsertId($lastInsertId);
+            }
+        }
+
         $data = $json['data'] ?? null;
         if (null !== $data) {
             return $data;

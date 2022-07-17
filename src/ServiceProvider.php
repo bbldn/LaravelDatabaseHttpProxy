@@ -4,6 +4,7 @@ namespace BBLDN\LaravelDatabaseHttpProxy;
 
 use Illuminate\Database\Connection;
 use Illuminate\Support\ServiceProvider as Base;
+use BBLDN\LaravelDatabaseHttpProxy\Connector as HTTPConnector;
 use BBLDN\LaravelDatabaseHttpProxy\Connection as HTTPConnection;
 
 class ServiceProvider extends Base
@@ -13,8 +14,8 @@ class ServiceProvider extends Base
      */
     public function boot(): void
     {
-        /** @noinspection PhpUndefinedFunctionInspection */
-        $this->publishes([__DIR__ . '/../config/databasehttpproxy.php' => config_path('databasehttpproxy.php')]);
+        $this->app->singleton('db.connector.http', HTTPConnector::class);
+        $this->app->singleton('db.connector.https', HTTPConnector::class);
 
         $callback = static fn($c, $d, $p, $config) => new HTTPConnection($c, $d, $p, $config);
 

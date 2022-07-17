@@ -21,12 +21,5 @@
         "illuminate/routing": "^9",
         "illuminate/contracts": "^9",
         "illuminate/config": "^9"
-    },
-    "extra": {
-        "laravel": {
-            "providers": [
-                "BBLDN\\LaravelDatabaseHttpProxy\\ServiceProvider"
-            ]
-        }
     }
 }
