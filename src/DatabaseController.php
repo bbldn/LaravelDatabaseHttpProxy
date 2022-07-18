@@ -51,7 +51,7 @@ class DatabaseController extends Base
      * @param Request $request
      * @return JsonResponse
      */
-    public function indexAction(Request $request): JsonResponse
+    public function __invoke(Request $request): JsonResponse
     {
         $token = $this->configRepository->get('databasehttpproxy.token');
         if (null !== $token) {
